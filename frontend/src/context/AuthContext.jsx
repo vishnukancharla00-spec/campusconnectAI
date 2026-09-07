@@ -9,6 +9,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const clearSession = () => {
+    localStorage.removeItem('cc_token');
+    setToken(null);
+    setUser(null);
+    setError(null);
+  };
+
   useEffect(() => {
     if (token) {
       validateToken();
@@ -22,19 +29,20 @@ export function AuthProvider({ children }) {
       const res = await fetch(API_CONFIG.ENDPOINTS.ME, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setUser(data);
         setError(null);
+      } else if (res.status === 401) {
+        // An expired token is an expected unauthenticated state, not a login error.
+        clearSession();
       } else {
-        throw new Error(`Token validation failed: ${res.status}`);
+        throw new Error(`Unable to restore your session (${res.status})`);
       }
     } catch (err) {
       console.error('❌ Token validation error:', err);
-      localStorage.removeItem('cc_token');
-      setToken(null);
-      setUser(null);
+      clearSession();
       setError(err.message);
     } finally {
       setLoading(false);
@@ -44,9 +52,6 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     try {
       setError(null);
-      console.log('🔐 Attempting login with:', username);
-      console.log('📡 API Endpoint:', API_CONFIG.ENDPOINTS.LOGIN);
-
       const res = await fetch(API_CONFIG.ENDPOINTS.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,8 +60,7 @@ export function AuthProvider({ children }) {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Login failed' }));
-        const errorMessage = err.detail || `Login failed: ${res.status} ${res.statusText}`;
-        throw new Error(errorMessage);
+        throw new Error(err.detail || `Login failed: ${res.status} ${res.statusText}`);
       }
 
       const data = await res.json();
@@ -64,7 +68,6 @@ export function AuthProvider({ children }) {
       setToken(data.access_token);
       setUser({ username: data.username, role: data.role, branch: data.branch });
       setError(null);
-      console.log('✅ Login successful for:', data.username);
       return data;
     } catch (err) {
       console.error('❌ Login error:', err);
@@ -73,33 +76,21 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('cc_token');
-    setToken(null);
-    setUser(null);
-    setError(null);
-  };
+  const logout = clearSession;
 
   const authFetch = async (url, options = {}) => {
     const headers = {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     };
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) headers.Authorization = `Bearer ${token}`;
 
-    try {
-      const res = await fetch(url, { ...options, headers });
-      if (res.status === 401) {
-        logout();
-        throw new Error('Session expired');
-      }
-      return res;
-    } catch (err) {
-      console.error('❌ API Fetch error:', err);
-      throw err;
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      clearSession();
+      throw new Error('Session expired');
     }
+    return res;
   };
 
   return (
