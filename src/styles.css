@@ -1,0 +1,102 @@
+/* Pleasant global styles */
+:root{
+  --bg: #FBFAF7;        /* warm off-white */
+  --card: #FFFFFF;      /* card background */
+  --muted: #6B6B6B;
+  --accent: #2F5D3B;    /* deep green accent */
+  --glass-shadow: 0 6px 18px rgba(33,33,33,0.08);
+  --radius: 12px;
+  --transition: 180ms ease;
+  --input-border: #E7E5E2;
+}
+
+/* Base reset */
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:#222;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.45;
+  font-size:16px;
+}
+
+/* Container helper */
+.container {
+  width:100%;
+  max-width:1100px;
+  margin:0 auto;
+  padding:24px;
+}
+
+/* Card */
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--glass-shadow);
+  border:1px solid rgba(16,16,16,0.03);
+  padding:20px;
+}
+
+/* Buttons */
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 16px;
+  border-radius:10px;
+  background:var(--accent);
+  color:#fff;
+  border: none;
+  cursor:pointer;
+  transition:transform var(--transition), box-shadow var(--transition);
+  font-weight:600;
+}
+.btn:hover{ transform:translateY(-2px); box-shadow:0 6px 20px rgba(47,93,59,0.12) }
+
+/* Inputs */
+.input {
+  width:100%;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid var(--input-border);
+  background:linear-gradient(180deg,#fff,#fbfbfb);
+  transition: box-shadow var(--transition), border-color var(--transition);
+  outline:none;
+  font-size:15px;
+}
+.input:focus{
+  box-shadow:0 6px 20px rgba(47,93,59,0.08);
+  border-color:rgba(47,93,59,0.6);
+}
+
+/* Muted text */
+.muted{ color:var(--muted); font-size:14px; }
+
+/* Centering login vertically & horizontally */
+.login-screen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+.login-card{
+  width:100%;
+  max-width:420px;
+  padding:28px;
+  border-radius:14px;
+}
+
+/* Form layout */
+.form-group{ margin-bottom:14px; }
+.form-actions{ margin-top:18px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+
+/* Small helper for error */
+.error{ color:#9B2C2C; font-size:13px; margin-top:6px; }
+
+/* Subtle rounded chart container */
+.chart-wrap{ padding:12px; border-radius:12px; background:linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.9)); border:1px solid rgba(16,16,16,0.03) }
