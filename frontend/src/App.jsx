@@ -1,12 +1,15 @@
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './components/Login';
-import DashboardLayout from './components/DashboardLayout';
-import FacultyDashboard from './components/FacultyDashboard';
-import HODDashboard from './components/HODDashboard';
-import PrincipalDashboard from './components/PrincipalDashboard';
+import { Suspense, lazy } from 'react'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import Login from './components/Login'
+import DashboardLayout from './components/DashboardLayout'
+
+// lazy-loaded dashboards
+const FacultyDashboard = lazy(() => import('./components/FacultyDashboard'))
+const HODDashboard = lazy(() => import('./components/HODDashboard'))
+const PrincipalDashboard = lazy(() => import('./components/PrincipalDashboard'))
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -16,18 +19,20 @@ function AppContent() {
           <p className="text-slate-400 text-sm">Loading CampusConnect...</p>
         </div>
       </div>
-    );
+    )
   }
 
-  if (!user) return <Login />;
+  if (!user) return <Login />
 
   return (
     <DashboardLayout>
-      {user.role === 'FACULTY' && <FacultyDashboard />}
-      {user.role === 'HOD' && <HODDashboard />}
-      {user.role === 'PRINCIPAL' && <PrincipalDashboard />}
+      <Suspense fallback={<div className="p-8 text-center">Loading dashboard...</div>}>
+        {user.role === 'FACULTY' && <FacultyDashboard />}
+        {user.role === 'HOD' && <HODDashboard />}
+        {user.role === 'PRINCIPAL' && <PrincipalDashboard />}
+      </Suspense>
     </DashboardLayout>
-  );
+  )
 }
 
 export default function App() {
@@ -35,5 +40,5 @@ export default function App() {
     <AuthProvider>
       <AppContent />
     </AuthProvider>
-  );
+  )
 }
