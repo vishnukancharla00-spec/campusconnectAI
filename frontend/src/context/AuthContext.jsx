@@ -35,7 +35,6 @@ export function AuthProvider({ children }) {
         setUser(data);
         setError(null);
       } else if (res.status === 401) {
-        // An expired token is an expected unauthenticated state, not a login error.
         clearSession();
       } else {
         throw new Error(`Unable to restore your session (${res.status})`);
@@ -85,7 +84,8 @@ export function AuthProvider({ children }) {
     };
     if (token) headers.Authorization = `Bearer ${token}`;
 
-    const res = await fetch(url, { ...options, headers });
+    const requestUrl = url.startsWith('/') ? `${API_CONFIG.BASE_URL}${url}` : url;
+    const res = await fetch(requestUrl, { ...options, headers });
     if (res.status === 401) {
       clearSession();
       throw new Error('Session expired');
