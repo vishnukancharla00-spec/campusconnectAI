@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import './Login.css';
 
 export default function Login() {
@@ -10,7 +10,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState(null);
 
   const handleLogin = async () => {
     setError('');
@@ -28,7 +27,7 @@ export default function Login() {
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !isLoading && username && password) {
+    if (e.key === 'Enter' && !isLoading && username.trim() && password.trim()) {
       handleLogin();
     }
   };
@@ -37,28 +36,19 @@ export default function Login() {
   const isFormValid = username.trim() && password.trim();
 
   return (
-    <div className="login-container">
-      {/* Subtle background gradient */}
-      <div className="login-bg-gradient" />
-
-      <div className="login-wrapper">
-        {/* Header Section */}
+    <div className="login-page">
+      <div className="login-shell">
         <div className="login-header">
-          <div className="login-logo">
-            <GraduationCap className="login-logo-icon" />
+          <div className="login-badge">
+            <GraduationCap className="login-badge-icon" />
           </div>
           <h1 className="login-title">CampusConnect</h1>
           <p className="login-subtitle">Analytics Platform • Unified Academic Intelligence</p>
         </div>
 
-        {/* Form Section */}
-        <div className="login-form-section">
-          <div className="login-form-header">
-            <h2 className="login-form-title">Welcome back</h2>
-            <p className="login-form-description">Sign in to your account to continue</p>
-          </div>
+        <div className="login-card">
+          <h2 className="login-card-title">Sign In</h2>
 
-          {/* Error Message */}
           {displayError && (
             <div className="login-error-message">
               <AlertCircle className="login-error-icon" />
@@ -66,91 +56,66 @@ export default function Login() {
             </div>
           )}
 
-          {/* Form Fields */}
-          <form className="login-form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-            <div className="login-form-group">
+          <form
+            className="login-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (isFormValid) handleLogin();
+            }}
+          >
+            <div className="login-field-group">
               <label htmlFor="username" className="login-label">
-                Username or Email
+                Username
               </label>
-              <div className={`login-input-wrapper ${focusedField === 'username' ? 'focused' : ''}`}>
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  onFocus={() => setFocusedField('username')}
-                  onBlur={() => setFocusedField(null)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="you@example.com"
-                  disabled={isLoading}
-                  autoComplete="username"
-                  className="login-input"
-                  aria-label="Username or Email"
-                />
-              </div>
+              <input
+                id="username"
+                type="text"
+                className="login-input"
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+                autoComplete="username"
+              />
             </div>
 
-            <div className="login-form-group">
+            <div className="login-field-group">
               <label htmlFor="password" className="login-label">
                 Password
               </label>
-              <div className={`login-input-wrapper ${focusedField === 'password' ? 'focused' : ''}`}>
+              <div className="login-password-wrap">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
+                  className="login-input"
+                  placeholder="********"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocusedField('password')}
-                  onBlur={() => setFocusedField(null)}
                   onKeyDown={handleKeyDown}
-                  placeholder="••••••••"
                   disabled={isLoading}
                   autoComplete="current-password"
-                  className="login-input"
-                  aria-label="Password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
                   className="login-password-toggle"
+                  onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  tabIndex={isLoading ? -1 : 0}
                 >
-                  {showPassword ? (
-                    <EyeOff className="login-password-icon" />
-                  ) : (
-                    <Eye className="login-password-icon" />
-                  )}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              onClick={handleLogin}
-              disabled={isLoading || !isFormValid}
               className="login-submit-btn"
-              aria-busy={isLoading}
+              disabled={isLoading || !isFormValid}
             >
-              {isLoading ? (
-                <>
-                  <div className="login-spinner" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="login-submit-icon" />
-                </>
-              )}
+              {isLoading ? 'Signing In...' : 'Sign In'}
+              {!isLoading && <ArrowRight size={16} />}
             </button>
           </form>
-
-          {/* Footer Text */}
-          <p className="login-footer-text">
-            Demo credentials are available in the quick login section below
-          </p>
         </div>
       </div>
     </div>
