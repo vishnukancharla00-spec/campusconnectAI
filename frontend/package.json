@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:analyze": "ANALYZE=true vite build",
-    "lint": "oxlint",
+    "lint": "oxlint src",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,7 +21,11 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "autoprefixer": "^10.6.1",
     "oxlint": "^1.75.0",
-    "rollup-plugin-visualizer": "^5.7.0"
+    "postcss": "^8.5.29",
+    "rollup-plugin-visualizer": "^5.7.0",
+    "tailwindcss": "^3.4.17"
   }
 }
+

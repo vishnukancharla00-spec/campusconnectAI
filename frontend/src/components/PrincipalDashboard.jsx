@@ -13,12 +13,6 @@ import InteractiveDataExplorer from './InteractiveDataExplorer';
 const BRANCHES = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL'];
 const SEMESTERS = ['Sem_1', 'Sem_3', 'Sem_4', 'Sem_5'];
 
-const RISK_CELL_COLORS = {
-  high: 'bg-red-500/30 border-red-500/40 text-red-300 hover:bg-red-500/40',
-  medium: 'bg-amber-500/20 border-amber-500/30 text-amber-300 hover:bg-amber-500/30',
-  low: 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30',
-};
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -202,7 +196,7 @@ export default function PrincipalDashboard() {
     academic: {
       chartKey: 'academic',
       chartLabel: 'Avg Marks',
-      chartColor: '#8b5cf6',
+      chartColor: '#64748b',
       statCards: [
         { icon: Users, label: 'Total Students', value: collegeData.total_students, color: 'text-white' },
         { icon: TrendingUp, label: 'Top by Marks', value: [...(collegeData.branch_performance || [])].sort((a, b) => b.academic - a.academic)[0]?.branch || 'N/A', color: 'gradient-text', isText: true },
@@ -230,18 +224,48 @@ export default function PrincipalDashboard() {
     { name: 'Medium Risk', value: riskData.medium_risk.count, color: '#f59e0b' },
     { name: 'Satisfactory', value: riskData.satisfactory.count, color: '#10b981' },
   ] : [];
+  const riskTotal = riskData?.total || 0;
+  const atRiskShare = collegeData.total_students
+    ? ((collegeData.total_at_risk / collegeData.total_students) * 100).toFixed(1)
+    : null;
+  const feePendingShare = collegeData.total_students && collegeData.total_fee_pending != null
+    ? ((collegeData.total_fee_pending / collegeData.total_students) * 100).toFixed(1)
+    : null;
 
-  const getCellColorClass = (count) => {
-    if (count > 15) return RISK_CELL_COLORS.high;
-    if (count >= 5) return RISK_CELL_COLORS.medium;
-    return RISK_CELL_COLORS.low;
+  const riskCells = BRANCHES.flatMap((branch) => SEMESTERS.map((semester) => ({
+    branch,
+    semester,
+    count: heatmapData[branch]?.[semester] || 0,
+  })));
+  const maxRiskCount = Math.max(1, ...riskCells.map((cell) => cell.count));
+  const highestRiskCell = riskCells.reduce((highest, cell) => cell.count > highest.count ? cell : highest, { count: 0 });
+  const getHeatmapStyle = (count) => {
+    const intensity = count / maxRiskCount;
+    return {
+      backgroundColor: `rgba(79, 70, 229, ${0.06 + intensity * 0.48})`,
+      borderColor: `rgba(79, 70, 229, ${0.16 + intensity * 0.55})`,
+      color: intensity > 0.52 ? '#ffffff' : '#3730a3',
+    };
   };
+  const strongestAttendance = [...branchChartData].sort((a, b) => (b.attendance ?? 0) - (a.attendance ?? 0))[0];
+  const strongestAcademic = [...branchChartData].sort((a, b) => (b.academic ?? 0) - (a.academic ?? 0))[0];
+  const insights = [
+    strongestAttendance && { label: 'Attendance leader', detail: `${strongestAttendance.name} · ${strongestAttendance.attendance}%`, icon: Activity },
+    strongestAcademic && { label: 'Strongest academic average', detail: `${strongestAcademic.name} · ${strongestAcademic.academic}`, icon: BookOpen },
+    highestRiskCell.count > 0 && { label: 'Priority intervention', detail: `${highestRiskCell.branch} · ${highestRiskCell.semester.replace('_', ' ')} · ${highestRiskCell.count} at-risk students`, icon: AlertTriangle },
+  ].filter(Boolean);
+  const healthIndicators = [
+    { label: 'Attendance health', value: collegeData.average_attendance, note: 'Overall attendance', color: '#10b981' },
+    { label: 'Academic health', value: collegeData.average_marks, note: 'Overall average marks', color: '#4f46e5' },
+    { label: 'At-risk students', value: atRiskShare == null ? null : Number(atRiskShare), note: atRiskShare == null ? 'No student total available' : `${collegeData.total_at_risk} of ${collegeData.total_students} students`, color: '#ef4444' },
+    { label: 'Fee pending', value: feePendingShare == null ? null : Number(feePendingShare), note: feePendingShare == null ? 'Fee data unavailable' : `${collegeData.total_fee_pending} students with pending fees`, color: '#f59e0b' },
+  ];
 
   return (
     <div className="animate-fade-in space-y-6">
       <div className="mb-2">
-        <h2 className="text-2xl font-bold text-white mb-1">Principal Dashboard</h2>
-        <p className="text-slate-400 text-sm">Institutional Overview • All Departments</p>
+        <h2 className="text-2xl font-bold text-white mb-1">College Performance Overview</h2>
+        <p className="text-slate-400 text-sm">Institution-wide view · {branchChartData.length} departments · {collegeData.total_students} students</p>
       </div>
 
       {/* Dynamic Summary Cards */}
@@ -259,6 +283,47 @@ export default function PrincipalDashboard() {
           );
         })}
       </div>
+
+      {insights.length > 0 && (
+        <section className="glass-card p-5" aria-labelledby="key-insights-title">
+          <div className="mb-4">
+            <h3 id="key-insights-title" className="text-md font-semibold text-white">Key Insights</h3>
+            <p className="text-xs text-slate-500 mt-1">Calculated from the latest department and semester data</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {insights.map((insight) => {
+              const InsightIcon = insight.icon;
+              return (
+                <div key={insight.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center gap-2 text-brand-700"><InsightIcon size={16} /><span className="text-xs font-semibold">{insight.label}</span></div>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">{insight.detail}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="glass-card p-5" aria-labelledby="college-health-title">
+        <div className="mb-4">
+          <h3 id="college-health-title" className="text-md font-semibold text-white">College Health</h3>
+          <p className="text-xs text-slate-500 mt-1">Indicators use values returned by the institutional analytics API</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {healthIndicators.map((metric) => (
+            <div key={metric.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-600">{metric.label}</span>
+                <strong className="text-sm text-slate-900">{metric.value == null ? '—' : `${metric.value}%`}</strong>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                <div className="h-full rounded-full transition-[width] duration-200" style={{ width: `${Math.max(0, Math.min(100, metric.value || 0))}%`, backgroundColor: metric.color }} />
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500">{metric.note}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Metric Toggle */}
       <div className="flex gap-2 p-1.5 glass-card inline-flex rounded-xl">
@@ -294,12 +359,12 @@ export default function PrincipalDashboard() {
               {activeMetric === 'attendance' && (
                 <>
                   <Bar dataKey="attendance" fill="#6366f1" name="Attendance %" radius={[6, 6, 0, 0]} cursor="pointer" />
-                  <Bar dataKey="academic" fill="#8b5cf6" name="Avg Marks" radius={[6, 6, 0, 0]} cursor="pointer" opacity={0.5} />
+                  <Bar dataKey="academic" fill="#64748b" name="Avg Marks" radius={[6, 6, 0, 0]} cursor="pointer" opacity={0.65} />
                 </>
               )}
               {activeMetric === 'academic' && (
                 <>
-                  <Bar dataKey="academic" fill="#8b5cf6" name="Avg Marks" radius={[6, 6, 0, 0]} cursor="pointer" />
+                  <Bar dataKey="academic" fill="#64748b" name="Avg Marks" radius={[6, 6, 0, 0]} cursor="pointer" />
                   <Bar dataKey="attendance" fill="#6366f1" name="Attendance %" radius={[6, 6, 0, 0]} cursor="pointer" opacity={0.5} />
                 </>
               )}
@@ -330,7 +395,7 @@ export default function PrincipalDashboard() {
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
                   <span className="text-slate-400">{d.name}</span>
                 </div>
-                <span className="text-white font-semibold">{d.value}</span>
+                <span className="text-white font-semibold">{d.value} · {riskTotal ? Math.round((d.value / riskTotal) * 100) : 0}%</span>
               </div>
             ))}
           </div>
@@ -396,7 +461,7 @@ export default function PrincipalDashboard() {
         <h4 className="text-md font-semibold text-white mb-1 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-red-400" /> Risk Heatmap
         </h4>
-        <p className="text-xs text-slate-500 mb-4">Click any cell to view flagged students • Color: 🔴 &gt;15 • 🟡 5–15 • 🟢 &lt;5</p>
+        <p className="text-xs text-slate-500 mb-4">Select a department and semester to review at-risk students. Indigo intensity scales to the highest observed count ({highestRiskCell.count}).</p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -417,7 +482,9 @@ export default function PrincipalDashboard() {
                     return (
                       <td key={sem} className="p-2 text-center">
                         <button
-                          className={`w-full py-3 rounded-xl border font-bold text-lg transition-all duration-300 cursor-pointer ${getCellColorClass(count)}`}
+                          className="w-full py-3 rounded-xl border font-bold text-lg transition-all duration-200 cursor-pointer hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-brand-500"
+                          style={getHeatmapStyle(count)}
+                          aria-label={`${branch}, ${sem.replace('_', ' ')}, ${count} at-risk students`}
                           onClick={() => handleHeatmapClick(branch, sem)}
                         >
                           {count}
@@ -496,3 +563,5 @@ export default function PrincipalDashboard() {
     </div>
   );
 }
+
+

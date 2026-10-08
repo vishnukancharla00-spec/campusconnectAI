@@ -42,14 +42,18 @@ const ScatterTooltip = ({ active, payload }) => {
 };
 
 function buildAttendanceBuckets(students) {
-  const buckets = Array.from({ length: 10 }, (_, i) => ({
-    range: `${i * 10}-${(i + 1) * 10}%`,
-    count: 0,
-    label: `${i * 10}%`,
-  }));
+  const bands = [
+    { min: 0, max: 50, range: '0–50%' },
+    { min: 50, max: 60, range: '50–60%' },
+    { min: 60, max: 70, range: '60–70%' },
+    { min: 70, max: 75, range: '70–75%' },
+    { min: 75, max: 85, range: '75–85%' },
+    { min: 85, max: 101, range: '85–100%' },
+  ];
+  const buckets = bands.map((band) => ({ ...band, label: band.range.replace('%', ''), count: 0 }));
   students.forEach((s) => {
-    const idx = Math.min(Math.floor(s.attendance / 10), 9);
-    buckets[idx].count += 1;
+    const bucket = buckets.find((band) => s.attendance >= band.min && s.attendance < band.max);
+    if (bucket) bucket.count += 1;
   });
   return buckets;
 }
@@ -108,6 +112,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [sortBy, setSortBy] = useState('name');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -146,6 +151,12 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
     if (!riskFilter) return studentsBeforeRisk;
     return studentsBeforeRisk.filter((s) => s.risk === riskFilter);
   }, [studentsBeforeRisk, riskFilter]);
+  const tableStudents = useMemo(() => [...filteredStudents].sort((a, b) => {
+    if (sortBy === 'attendance') return (a.attendance ?? 0) - (b.attendance ?? 0);
+    if (sortBy === 'marks') return (a.average_marks ?? 0) - (b.average_marks ?? 0);
+    return (a.name || '').localeCompare(b.name || '');
+  }), [filteredStudents, sortBy]);
+  const selectedStudentData = filteredStudents.find((student) => student.roll_no === selectedStudent);
 
   const riskCounts = useMemo(() => ({
     'High Risk': studentsBeforeRisk.filter((s) => s.risk === 'High Risk').length,
@@ -194,7 +205,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
   };
 
   return (
-    <div className="glass-card border border-brand-500/20 overflow-hidden animate-slide-up">
+    <div id="student-explorer" className="glass-card border border-brand-500/20 overflow-hidden animate-slide-up">
       <button
         type="button"
         className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors"
@@ -268,8 +279,8 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
             <div className="flex-1 min-w-[180px]">
               <label className="block text-xs text-slate-500 mb-1">Marks {marksMin}–{marksMax}</label>
               <div className="flex gap-2 items-center">
-                <input type="range" min="0" max="100" value={marksMin} onChange={(e) => setMarksMin(Math.min(+e.target.value, marksMax))} className="flex-1 h-2 accent-purple-500 cursor-pointer" />
-                <input type="range" min="0" max="100" value={marksMax} onChange={(e) => setMarksMax(Math.max(+e.target.value, marksMin))} className="flex-1 h-2 accent-purple-500 cursor-pointer" />
+                <input type="range" min="0" max="100" value={marksMin} onChange={(e) => setMarksMin(Math.min(+e.target.value, marksMax))} className="flex-1 h-2 accent-brand-500 cursor-pointer" />
+                <input type="range" min="0" max="100" value={marksMax} onChange={(e) => setMarksMax(Math.max(+e.target.value, marksMin))} className="flex-1 h-2 accent-brand-500 cursor-pointer" />
               </div>
             </div>
 
@@ -284,6 +295,15 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Sort students</label>
+              <select className="input-field py-2 text-sm w-40" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="name">Name, A to Z</option>
+                <option value="attendance">Attendance, lowest first</option>
+                <option value="marks">Marks, lowest first</option>
+              </select>
             </div>
 
             <div className="flex gap-2">
@@ -319,7 +339,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
                 }}
                 onClick={() => setRiskFilter(riskFilter === risk ? null : risk)}
               >
-                {risk} ({riskCounts[risk]})
+                {risk} ({riskCounts[risk]} · {studentsBeforeRisk.length ? Math.round((riskCounts[risk] / studentsBeforeRisk.length) * 100) : 0}%)
               </button>
             ))}
           </div>
@@ -375,7 +395,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
               {chartType === 'bar' && (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={bucketData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} />
                     <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
                     <Tooltip
@@ -388,7 +408,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
                     />
                     <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} name="Students">
                       {bucketData.map((_, i) => (
-                        <Cell key={i} fill={`hsl(${240 + i * 8}, 70%, ${55 + i * 2}%)`} />
+                          <Cell key={i} fill={['#c7d2fe', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#3730a3'][i]} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -413,7 +433,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
                       ) : null}
                     />
                     <Area type="monotone" dataKey="attendance" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} name="Avg Attendance" />
-                    <Area type="monotone" dataKey="marks" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} name="Avg Marks" />
+                    <Area type="monotone" dataKey="marks" stroke="#64748b" fill="#64748b" fillOpacity={0.12} name="Avg Marks" />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -436,7 +456,7 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.slice(0, 100).map((s) => (
+                  {tableStudents.slice(0, 100).map((s) => (
                     <tr
                       key={`${s.roll_no}-${s.semester}`}
                       className={`border-t border-white/[0.04] transition-colors cursor-pointer ${
@@ -469,8 +489,32 @@ export default function InteractiveDataExplorer({ defaultExpanded = true }) {
               )}
             </div>
           )}
+        {selectedStudentData && (
+          <aside className="mt-4 rounded-xl border border-brand-200 bg-brand-50/60 p-4" aria-label="Selected student details">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-white text-sm font-bold text-brand-700">
+                  {(selectedStudentData.name || '?').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">{selectedStudentData.name}</h4>
+                  <p className="text-xs text-slate-500">{selectedStudentData.roll_no} · {selectedStudentData.branch} · {selectedStudentData.semester?.replace('_', ' ')}</p>
+                </div>
+              </div>
+              <button type="button" className="btn-ghost text-xs" onClick={() => setSelectedStudent(null)}>Close</button>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div><p className="text-xs text-slate-500">Attendance</p><p className="font-semibold text-slate-900">{selectedStudentData.attendance}%</p></div>
+              <div><p className="text-xs text-slate-500">Average marks</p><p className="font-semibold text-slate-900">{selectedStudentData.average_marks}</p></div>
+              <div><p className="text-xs text-slate-500">Section</p><p className="font-semibold text-slate-900">{selectedStudentData.section || '—'}</p></div>
+              <div><p className="text-xs text-slate-500">Risk status</p><p className="font-semibold text-slate-900">{selectedStudentData.risk}</p></div>
+            </div>
+          </aside>
+        )}
         </div>
       )}
     </div>
   );
 }
+
+

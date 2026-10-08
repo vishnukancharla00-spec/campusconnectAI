@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import {
   Users, TrendingUp, AlertTriangle, BookOpen, Search, SlidersHorizontal,
-  Target, Activity, Trophy, TrendingDown, X,
+  Activity, Trophy, TrendingDown, X,
 } from 'lucide-react';
 import InteractiveDataExplorer from './InteractiveDataExplorer';
 
@@ -242,6 +242,8 @@ export default function HODInteractiveDashboard() {
     attendance: deptData.sem_attendance[sem] || 0,
     academic: deptData.sem_academic[sem] || 0,
   }));
+  const bestSemester = [...semAttendanceData].sort((a, b) => b.academic - a.academic)[0];
+  const bestSubject = subjectChartData[0];
 
   const riskTotal = riskData?.total || 0;
   const riskChartData = riskData
@@ -257,17 +259,17 @@ export default function HODInteractiveDashboard() {
   return (
     <div className="animate-fade-in space-y-6">
       <div className="mb-2">
-        <h2 className="text-2xl font-bold text-white mb-1">HOD Analytics Dashboard</h2>
+        <h2 className="text-2xl font-bold text-white mb-1">Department Analytics</h2>
         <p className="text-slate-400 text-sm">
-          Department: <span className="text-brand-400 font-semibold">{branch}</span> • Interactive Cross-Semester Overview
+          <span className="text-brand-400 font-semibold">{branch}</span> • Department overview across semesters, subjects and student support
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
         <div className="stat-card group">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-blue-400" />
-            <p className="text-sm text-slate-400">Dept. Strength</p>
+            <p className="text-sm text-slate-400">Total Students</p>
           </div>
           <p className="text-3xl font-bold text-white">{deptData.total_students}</p>
         </div>
@@ -282,6 +284,13 @@ export default function HODInteractiveDashboard() {
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-2 mb-1">
+            <BookOpen className="w-4 h-4 text-brand-400" />
+            <p className="text-sm text-slate-400">Academic Average</p>
+          </div>
+          <p className="text-3xl font-bold text-brand-400">{deptData.average_marks ?? '—'}</p>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="w-4 h-4 text-red-400" />
             <p className="text-sm text-slate-400">At-Risk Students</p>
           </div>
@@ -289,12 +298,19 @@ export default function HODInteractiveDashboard() {
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-2 mb-1">
-            <Target className="w-4 h-4 text-brand-400" />
-            <p className="text-sm text-slate-400">Health Score</p>
+            <TrendingUp className="w-4 h-4 text-brand-400" />
+            <p className="text-sm text-slate-400">Best Semester</p>
           </div>
-          <p className={`text-3xl font-bold ${deptData.health_score >= 70 ? 'text-emerald-400' : deptData.health_score >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-            {deptData.health_score}
-          </p>
+          <p className="text-xl font-bold text-white">{bestSemester?.name || '—'}</p>
+          {bestSemester && <p className="text-xs text-slate-500 mt-1">{bestSemester.academic.toFixed(1)} average score</p>}
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-2 mb-1">
+            <Trophy className="w-4 h-4 text-brand-400" />
+            <p className="text-sm text-slate-400">Best Subject</p>
+          </div>
+          <p className="text-xl font-bold text-white truncate" title={bestSubject?.name}>{bestSubject?.name || '—'}</p>
+          {bestSubject && <p className="text-xs text-slate-500 mt-1">{bestSubject.average.toFixed(1)} class average</p>}
         </div>
       </div>
 
@@ -437,7 +453,7 @@ export default function HODInteractiveDashboard() {
                 onClick={() => setRiskFilter(riskFilter === d.name ? null : d.name)}
               >
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                <span className="text-slate-400">{d.name}: <strong className="text-white">{d.value}</strong></span>
+                <span className="text-slate-400">{d.name}: <strong className="text-white">{d.value}</strong> · {riskTotal ? ((d.value / riskTotal) * 100).toFixed(0) : 0}%</span>
               </button>
             ))}
           </div>
@@ -577,6 +593,7 @@ export default function HODInteractiveDashboard() {
                   <th className="p-3 text-left text-slate-400 font-medium">Attendance</th>
                   <th className="p-3 text-left text-slate-400 font-medium">Avg Marks</th>
                   <th className="p-3 text-left text-slate-400 font-medium">Status</th>
+                  <th className="p-3 text-left text-slate-400 font-medium">Reason</th>
                 </tr>
               </thead>
               <tbody>
@@ -599,6 +616,15 @@ export default function HODInteractiveDashboard() {
                           : category === 'Medium Risk' ? <span className="badge-risk-medium">Medium</span>
                           : <span className="badge-risk-low">OK</span>}
                       </td>
+                      <td className="p-3 text-xs text-slate-500">
+                        {s.attendance < 75 && s.average_marks < 40
+                          ? 'Attendance and marks below threshold'
+                          : s.attendance < 75
+                            ? 'Attendance below 75%'
+                            : s.average_marks < 40
+                              ? 'Academic score below 40'
+                              : 'Within thresholds'}
+                      </td>
                     </tr>
                   );
                 })}
@@ -617,3 +643,5 @@ export default function HODInteractiveDashboard() {
     </div>
   );
 }
+
+

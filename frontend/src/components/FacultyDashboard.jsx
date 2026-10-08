@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  UserPlus, ClipboardCheck, PenLine, BarChart3, ChevronRight,
-  CheckCircle2, AlertTriangle, Search, Users, Calendar, BookOpen
+  UserPlus, ClipboardCheck, PenLine, BarChart3,
+  CheckCircle2, AlertTriangle, Users, BookOpen
 } from 'lucide-react';
 import InteractiveDataExplorer from './InteractiveDataExplorer';
 
@@ -73,6 +73,14 @@ function AddStudentTab({ branch, authFetch }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    if (!form.roll_no.trim() || !form.name.trim()) {
+      setMsg({ type: 'error', text: 'Enter both a roll number and student name.' });
+      return;
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setMsg({ type: 'error', text: 'Enter a valid email address or leave it blank.' });
+      return;
+    }
     setLoading(true);
     setMsg(null);
     try {
@@ -115,7 +123,7 @@ function AddStudentTab({ branch, authFetch }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-400 mb-1">Roll No</label>
           <input className="input-field" value={form.roll_no} onChange={(e) => setForm({ ...form, roll_no: e.target.value })} placeholder="e.g. CSE101" />
@@ -467,7 +475,13 @@ function QuickSummaryTab({ branch, authFetch }) {
     );
   }
 
-  if (!analytics) return null;
+  if (!analytics) return (
+    <div className="glass-card p-8 text-center">
+      <BarChart3 className="mx-auto mb-3 h-8 w-8 text-slate-400" />
+      <p className="font-semibold text-slate-700">Analytics are unavailable</p>
+      <p className="mt-1 text-sm text-slate-500">Try selecting the semester again or check back later.</p>
+    </div>
+  );
 
   return (
     <div className="animate-slide-up space-y-6">
@@ -481,7 +495,7 @@ function QuickSummaryTab({ branch, authFetch }) {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <div className="stat-card">
           <p className="text-sm text-slate-400">Total Students</p>
           <p className="text-3xl font-bold text-white">{analytics.total_students}</p>
@@ -499,6 +513,10 @@ function QuickSummaryTab({ branch, authFetch }) {
         <div className="stat-card">
           <p className="text-sm text-slate-400">At-Risk Students</p>
           <p className="text-3xl font-bold text-red-400">{analytics.at_risk_students.length}</p>
+        </div>
+        <div className="stat-card">
+          <p className="text-sm text-slate-400">Average Marks</p>
+          <p className="text-3xl font-bold text-brand-600">{analytics.average_marks ?? '—'}</p>
         </div>
       </div>
 
@@ -578,3 +596,5 @@ function QuickSummaryTab({ branch, authFetch }) {
     </div>
   );
 }
+
+
