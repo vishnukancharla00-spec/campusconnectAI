@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { GraduationCap, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import './Login.css';
 
 export default function Login() {
   const { login, error: authError } = useAuth();
@@ -9,10 +10,11 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleLogin = async () => {
-    setIsLoading(true);
     setError('');
+    setIsLoading(true);
 
     try {
       await login(username, password);
@@ -25,84 +27,130 @@ export default function Login() {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !isLoading && username && password) {
+      handleLogin();
+    }
+  };
+
   const displayError = error || authError;
+  const isFormValid = username.trim() && password.trim();
 
   return (
-    <div className="min-h-screen bg-[#020d1b] px-4 py-8 flex items-center justify-center">
-      <div className="w-full max-w-[420px] rounded-[28px] border border-white/10 bg-[#071b2d] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-        <div className="flex justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#f5c76a] via-[#f59e0b] to-[#f97316] shadow-[0_8px_18px_rgba(245,158,11,0.35)]">
-            <GraduationCap className="h-8 w-8 text-[#0a1525]" />
+    <div className="login-container">
+      {/* Subtle background gradient */}
+      <div className="login-bg-gradient" />
+
+      <div className="login-wrapper">
+        {/* Header Section */}
+        <div className="login-header">
+          <div className="login-logo">
+            <GraduationCap className="login-logo-icon" />
           </div>
+          <h1 className="login-title">CampusConnect</h1>
+          <p className="login-subtitle">Analytics Platform • Unified Academic Intelligence</p>
         </div>
 
-        <h1 className="mt-5 text-center text-4xl font-bold tracking-tight text-white">CampusConnect</h1>
-        <p className="mt-2 text-center text-sm text-slate-300">Analytics Platform • Unified Academic Intelligence</p>
+        {/* Form Section */}
+        <div className="login-form-section">
+          <div className="login-form-header">
+            <h2 className="login-form-title">Welcome back</h2>
+            <p className="login-form-description">Sign in to your account to continue</p>
+          </div>
 
-        <div className="mt-8">
-          <h2 className="mb-5 text-3xl font-semibold text-white">Sign In</h2>
-
+          {/* Error Message */}
           {displayError && (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
-              <span>{displayError}</span>
+            <div className="login-error-message">
+              <AlertCircle className="login-error-icon" />
+              <p>{displayError}</p>
             </div>
           )}
 
-          <div className="space-y-5">
-            <div>
-              <label className="mb-2 block text-sm text-slate-200">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleLogin()}
-                placeholder="Enter username"
-                disabled={isLoading}
-                className="w-full rounded-xl border border-slate-600 bg-[#0f2b3d] px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition duration-200 focus:border-[#5aa9ff] focus:ring-2 focus:ring-[#5aa9ff]/30"
-              />
+          {/* Form Fields */}
+          <form className="login-form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+            <div className="login-form-group">
+              <label htmlFor="username" className="login-label">
+                Username or Email
+              </label>
+              <div className={`login-input-wrapper ${focusedField === 'username' ? 'focused' : ''}`}>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField(null)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="you@example.com"
+                  disabled={isLoading}
+                  autoComplete="username"
+                  className="login-input"
+                  aria-label="Username or Email"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm text-slate-200">Password</label>
-              <div className="relative">
+            <div className="login-form-group">
+              <label htmlFor="password" className="login-label">
+                Password
+              </label>
+              <div className={`login-input-wrapper ${focusedField === 'password' ? 'focused' : ''}`}>
                 <input
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleLogin()}
-                  placeholder="********"
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="••••••••"
                   disabled={isLoading}
-                  className="w-full rounded-xl border border-slate-600 bg-[#0f2b3d] px-4 py-3 pr-12 text-base text-white placeholder:text-slate-400 outline-none transition duration-200 focus:border-[#5aa9ff] focus:ring-2 focus:ring-[#5aa9ff]/30"
+                  autoComplete="current-password"
+                  className="login-input"
+                  aria-label="Password"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-300 hover:text-white"
+                  className="login-password-toggle"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={isLoading ? -1 : 0}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="login-password-icon" />
+                  ) : (
+                    <Eye className="login-password-icon" />
+                  )}
                 </button>
               </div>
             </div>
 
+            {/* Submit Button */}
             <button
-              type="button"
+              type="submit"
               onClick={handleLogin}
-              disabled={isLoading || !username || !password}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7c8df5] to-[#7b7ae8] px-4 py-3 text-lg font-semibold text-white shadow-[0_10px_22px_rgba(123,122,232,0.45)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isLoading || !isFormValid}
+              className="login-submit-btn"
+              aria-busy={isLoading}
             >
               {isLoading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                <>
+                  <div className="login-spinner" />
+                  <span>Signing in...</span>
+                </>
               ) : (
                 <>
-                  <LogIn className="h-5 w-5" />
                   <span>Sign In</span>
+                  <ArrowRight className="login-submit-icon" />
                 </>
               )}
             </button>
-          </div>
+          </form>
+
+          {/* Footer Text */}
+          <p className="login-footer-text">
+            Demo credentials are available in the quick login section below
+          </p>
         </div>
       </div>
     </div>
